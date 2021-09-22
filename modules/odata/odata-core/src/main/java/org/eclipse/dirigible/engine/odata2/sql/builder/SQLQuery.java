@@ -436,16 +436,52 @@ public final class SQLQuery {
                 }
 
             } else {
+            	
                 Object value = convertToSqlType(param);
-                boolean successfullySet = setInteger(preparedStatement, i, value);
-                if (!successfullySet) {
-                    successfullySet = setLong(preparedStatement, i, value);
-                }
-                if (!successfullySet) {
-                    setObject(preparedStatement, i, value);
+                if(isInteger(value) && isSqlTypeNumericOrNull(param.getSqlType())) {
+                	setInteger(preparedStatement, i, value);
+                }else if(isLong(value) && isSqlTypeNumericOrNull(param.getSqlType())) {
+                	setLong(preparedStatement, i, value);
+                }else {
+                	setObject(preparedStatement, i, value);
                 }
             }
         }
+    }
+    
+    private boolean isSqlTypeNumericOrNull(String sqlType) {
+    	return sqlType == null || sqlType == "NUMERIC";
+    }
+    
+    private boolean isInteger(Object value) {
+    	try {
+    		if(value == null) {
+    			return false;
+    		}
+    		long t = Long.valueOf(value.toString());
+    		
+    		if(t < Integer.MAX_VALUE) {
+    			return true;
+    		}else {
+    			return false;
+    		}
+    		
+    	}catch(NumberFormatException e) {
+    		return false;
+    	}
+    }
+    
+    private boolean isLong(Object value) {
+    	try {
+    		if(value == null) {
+    			return false;
+    		}
+    		Long.valueOf(value.toString());
+    		return true;
+    		
+    	}catch(NumberFormatException e) {
+    		return false;
+    	}
     }
 
     private boolean setInteger(final PreparedStatement preparedStatement, int i, Object value) throws SQLException {
@@ -540,7 +576,9 @@ public final class SQLQuery {
             try {
                 if ("NUMERIC".equals(targetSqlType)) {
                     return Long.valueOf(String.valueOf(actualValue));
-                } else {
+                } else if("VARCHAR".equals(targetSqlType)){
+                	return String.valueOf(actualValue);
+                }else {
                     throw new OData2Exception("Conversion to specified SQL Type " + targetSqlType + " not implemented!", BAD_REQUEST);
                 }
 
